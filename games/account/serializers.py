@@ -57,35 +57,6 @@ class UserTokenObtainPairSerializer(TokenObtainPairSerializer):
         else:
             raise serializers.ValidationError("Only commom users are allowed to log in here.")
 
-# class QuestionSerializer(serializers.Serializer):
-#     LEVEL_CHOICES = [
-#         ('beginner', 'Beginner'),
-#         ('medium', 'Medium'),
-#         ('expert', 'Expert'),
-#     ]
-
-#     id = serializers.IntegerField()
-#     question = serializers.CharField()
-#     level = serializers.ChoiceField(choices=LEVEL_CHOICES)
-#     game_state = serializers.BooleanField(default=True)
-
-#     def create(self, validated_data):
-#         # Not needed for a serializer without a model
-#         pass
-
-#     def update(self, instance, validated_data):
-#         # Not needed for a serializer without a model
-#         pass
-
-#     def to_representation(self, instance):
-#         ret = super().to_representation(instance)
-#         if ret.get('game_state', False):  # Check if game_state is True
-#             ret['level'] = self.fields['level'].disabled  # Disable the level field
-#         return ret
-    
-# class AnswerSerializer(serializers.Serializer):
-#     answer = serializers.CharField(max_length=100)    
-
 
 class LevelChoiceSerializer(serializers.Serializer):
     level_choices = [
