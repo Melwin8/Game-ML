@@ -7,5 +7,5 @@ urlpatterns = [
     path('user-login/', views.UserloginView.as_view(), name='user-token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('TenseQuiz/', views.QuizAPIView.as_view(), name='quiz_api'),
-    path('api/boggle/', views.BoggleGameView.as_view(), name='boggle_game'),
+    path('boggle/',views.BoggleGameAPIView.as_view(), name='boggle_game'),
 ]

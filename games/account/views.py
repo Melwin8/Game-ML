@@ -1,10 +1,10 @@
 import time
-from rest_framework import views,status
+import random
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework.decorators import action
 from .serializers import *
 from rest_framework.permissions import AllowAny
 from .gaming import TenseQuiz 
@@ -108,69 +108,89 @@ class QuizAPIView(APIView):
             final_response = {"message": "Quiz complete! Your final score is:", "score": final_score}
             return Response(final_response, status=status.HTTP_200_OK)
     
-# class BoggleGameView(APIView):
-#     def post(self, request):
-#         serializer = BoggleInputSerializer(data=request.data)
-#         if serializer.is_valid():
-#             player_words = serializer.validated_data['player_words']
-#             # Initialize or get the BoggleGame instance
-#             game = BoggleGame()
-#             board = game.generate_board()
-#             valid_words = game.words_for_boards[board]
-#             correct_guesses = [word for word in player_words if word in valid_words]
-#             score = len(correct_guesses)
-#             return Response({'score': score, 'correct_guesses': correct_guesses}, status=status.HTTP_200_OK)
-#         else:
-#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class BoggleGameAPIView(APIView):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.game = BoggleGame()
+        self.board = None  # Initially set board to None
 
-# class BoggleGameView(APIView):
-#     def post(self, request):
-#         serializer = BoggleInputSerializer(data=request.data)
-#         if serializer.is_valid():
-#             player_words = serializer.validated_data['player_words'].split(',')
-#             # Initialize or get the BoggleGame instance
-#             game = BoggleGame()
-#             board = game.generate_board()
-#             valid_words = game.words_for_boards[board]
-#             correct_guesses = [word for word in player_words if word.upper() in valid_words]
-#             score = len(correct_guesses)
-#             return Response({
-#                 'board': board,
-#                 'elapsed_time': 0,  # Placeholder for elapsed time as it's not handled in this view
-#                 'player_words': player_words,
-#                 'correct_guesses': correct_guesses,
-#                 'score': score
-#             }, status=status.HTTP_200_OK)
-#         else:
-#             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def get(self, request, format=None):
+        if self.board is None:
+            # Game hasn't started yet, generate the initial board
+            self.board = self.game.generate_board()
+            print("board",self.board)
 
-class BoggleGameView(APIView):
-    serializer_class = BoggleInputSerializer
-    def get(self, request):
-        game = BoggleGame()
-        board = game.generate_board()
-        game.display_board(board)  # Display the board
-        return Response({'board': board}, status=status.HTTP_200_OK)
+        # Input messages
+        messages = [
+            "Welcome to Boggle!",
+            "Try to find as many words as you can in the given board.",
+            "Type your words separated by spaces and submit to check your score.",
+            "You can also type 'hint' for a hint to get started.",
+        ]
 
-    def post(self, request):
-        serializer = BoggleInputSerializer(data=request.data)
+        # Return the current board and input messages on GET request
+        response_data = {
+            'board': self.board,
+            'messages': messages,
+        }
+        return Response(response_data, status=status.HTTP_200_OK)
+
+    def display_board(self, board):
+        board_str = "\n".join([" ".join(row) for row in board])
+        return board_str
+
+    def display_hint(self, hint_words):
+        hint_str = "\nHint words: " + ", ".join(hint_words)
+        return hint_str
+
+    def post(self, request, format=None):
+        serializer = BoggleGameSerializer(data=request.data)
+        # guessed_words=[]
         if serializer.is_valid():
-            player_words = serializer.validated_data['player_words'].split(',')
-            # Initialize or get the BoggleGame instance
-            game = BoggleGame()
-            board = game.generate_board()
-            valid_words = game.words_for_boards[board]
-            correct_guesses = [word for word in player_words if word.upper() in valid_words]
-            score = len(correct_guesses)
-            elapsed_time = 0  # Placeholder for elapsed time as it's not handled in this view
-            return Response({
-                'board': board,
-                'elapsed_time': elapsed_time,
-                'player_words': player_words,
-                'correct_guesses': correct_guesses,
-                'score': score
-            }, status=status.HTTP_200_OK)
-        else:
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            self.board = self.game.generate_board()
+            # guessed_word = [guessed_words.append(word) for word in serializer.validated_data['guessed_words']]
+            guessed_words = []
+            guessed_word = serializer.validated_data.get('guessed_words')
+            
+            if guessed_word:
+                if isinstance(guessed_word, str):
+                    # Split the input string by spaces to get individual words
+                    guessed_words = guessed_word.split()
+                    print("split",guessed_words)
+                elif isinstance(guessed_word, list):
+                    guessed_words.extend([ word.upper() for phrase in guessed_word for word in phrase.split()])
+                    print("list",guessed_words)
+            
 
+            print("guessed",guessed_words)
+            self.game.score = 0  # Reset score for each new game
+
+            valid_words = self.game.words_for_boards[self.board]
+            print(valid_words)
+            correct_guesses = [word for word in guessed_words if word in valid_words]
+            incorrect_guesses = [word for word in guessed_words if word not in valid_words]
+            print("correct guesss",correct_guesses)
+            self.game.score += len(correct_guesses)
+        
+            # Prepare response data
+            response_data = {
+                'board': self.display_board(self.board),  # Include the board in the response
+                'score': self.game.score,
+                'valid_words': list(valid_words),
+                'correct_guesses': correct_guesses,
+                'Incorrect Guesses':incorrect_guesses
+            }
+
+            # Check if 'hint' is in guessed words
+            if 'hint' in guessed_words:
+                hint_words = random.sample(valid_words, min(3, len(valid_words)))
+                response_data['hint'] = self.display_hint(hint_words)
+
+            play_again = request.data.get('play_again', '').lower()
+            if play_again == 'yes':
+                # Reset the board for a new game
+                self.board = self.game.generate_board()
+
+            return Response(response_data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

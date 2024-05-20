@@ -59,20 +59,29 @@ class UserTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 
 class LevelChoiceSerializer(serializers.Serializer):
-    level_choices = [
-        ("beginner", "Beginner"),
-        ("medium", "Medium"),
-        ("expert", "Expert"),
-    ]
-    level = serializers.ChoiceField(choices=level_choices)
+    level = serializers.ChoiceField(choices=[('beginner', 'Beginner'), ('medium', 'Medium'), ('expert', 'Expert')])
 
 class AnswerSerializer(serializers.Serializer):
-    answer = serializers.CharField(max_length=255)
-    start_quiz = serializers.BooleanField(default=True)
+    answer = serializers.CharField(max_length=255, required=True)
+
+# class TenseQuizRequestSerializer(serializers.Serializer):
+#     level = serializers.ChoiceField(choices=['beginner', 'medium', 'expert'])
+#     answer = serializers.CharField(max_length=100, required=False)
+    # def validate_level(self, value):
+    #     """
+    #     Validates the chosen level to ensure it's one of the available options.
+    #     """
+    #     valid_levels = ("Beginner", "Medium", "Expert")
+    #     if value.lower() not in valid_levels:
+    #         raise serializers.ValidationError("Invalid level. Please choose from Beginner, Medium, or Expert.")
+    #     return value.lower()
     
 # class ScoreSerializer(serializers.Serializer):
 #     score = serializers.IntegerField()
 
 
-class BoggleInputSerializer(serializers.Serializer):
-    player_words = serializers.CharField(max_length=255)
+# class BoggleInputSerializer(serializers.Serializer):
+#     player_words = serializers.CharField(max_length=255)
+
+class BoggleGameSerializer(serializers.Serializer):
+    guessed_words = serializers.ListField(child=serializers.CharField(max_length=50), allow_empty=False)
