@@ -8,4 +8,5 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('TenseQuiz/', views.QuizAPIView.as_view(), name='quiz_api'),
     path('boggle/',views.BoggleGameAPIView.as_view(), name='boggle_game'),
+    path('word-shuffle/', views.WordShuffleChallengeAPIView.as_view(), name='word-shuffle-challenge'),
 ]

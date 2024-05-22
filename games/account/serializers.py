@@ -66,3 +66,22 @@ class AnswerSerializer(serializers.Serializer):
 
 class BoggleGameSerializer(serializers.Serializer):
     guessed_words = serializers.ListField(child=serializers.CharField(max_length=50), allow_empty=False)
+
+# class WordShuffleSerializer(serializers.Serializer):
+#     # difficulty = serializers.ChoiceField(choices=[('easy', 'Easy'), ('medium', 'Medium'), ('hard', 'Hard')], required=True)
+#     difficulty = serializers.ChoiceField(choices=["easy", "medium", "hard"])
+#     guess = serializers.CharField(required=False, allow_blank=True)
+#     shuffled_word = serializers.CharField(read_only=True)
+#     level = serializers.IntegerField(read_only=True)
+#     score = serializers.IntegerField(read_only=True)
+#     message = serializers.CharField(read_only=True)
+#     game_over = serializers.BooleanField(read_only=True)
+
+class WordShuffleSerializer(serializers.Serializer):
+    difficulty = serializers.ChoiceField(choices=[('easy', 'Easy'), ('medium', 'Medium'), ('hard', 'Hard')], required=True)
+    guess = serializers.CharField(max_length=100, required=False)
+    original_word = serializers.CharField(max_length=100, required=False)
+    shuffled_word = serializers.CharField(max_length=100, required=False)
+    level = serializers.IntegerField(required=False)
+    score = serializers.IntegerField(required=False)
+    message = serializers.CharField(max_length=255, required=False)

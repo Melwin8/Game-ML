@@ -9,6 +9,7 @@ from .serializers import *
 from rest_framework.permissions import AllowAny
 from .gaming import TenseQuiz 
 from .boggle import BoggleGame
+from .wordpuzzle import shuffle_word, choose_word
 # from .gaming import Question
 
 class UserRegistrationView(APIView):
@@ -193,4 +194,114 @@ class BoggleGameAPIView(APIView):
                 self.board = self.game.generate_board()
 
             return Response(response_data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+"""word puzzle"""
+# List of words for each difficulty level
+easy_words = ["apple", "banana", "orange", "grape", "melon", "kiwi", "peach", "lemon"]
+medium_words = ["elephant", "kangaroo", "giraffe", "rhinoceros", "zebra", "penguin", "hippopotamus"]
+hard_words = ["magnificent", "extraordinary", "phenomenal", "impeccable", "incomprehensible", "unbelievable", "inconceivable"]
+
+# Dictionary to map difficulty levels to word lists
+difficulty_levels = {
+    "easy": easy_words,
+    "medium": medium_words,
+    "hard": hard_words
+}
+
+def shuffle_word(word):
+    """Function to shuffle the letters of a word"""
+    word_list = list(word)
+    random.shuffle(word_list)
+    return ''.join(word_list)
+
+def choose_word(difficulty, used_words):
+    """Function to choose a random word based on the difficulty level"""
+    word_list = difficulty_levels[difficulty]
+    available_words = [word for word in word_list if word not in used_words]
+    if not available_words:
+        if difficulty == "easy":
+            return None, "Congratulations! You've completed the Easy level. Moving on to the Medium level."
+        elif difficulty == "medium":
+            return None, "Congratulations! You've completed the Medium level. Moving on to the Hard level."
+        else:
+            return None, "Congratulations! You've completed the Hard level. You've completed all levels. Game Over!"
+    word = random.choice(available_words)
+    return word, None
+
+class WordShuffleChallengeAPIView(APIView):
+    serializer_class = WordShuffleSerializer
+
+    def get(self, request):
+        return Response({
+            "message": "Welcome to the Word Shuffle Challenge! Select difficulty: 'easy', 'medium', 'hard'",
+        })
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        if serializer.is_valid():
+            difficulty = serializer.validated_data.get('difficulty')
+            guess = serializer.validated_data.get('guess', None)
+
+            if guess is None:
+                # Start a new game
+                used_words = []
+                word, message = choose_word(difficulty, used_words)
+                if word is None:
+                    return Response({"message": message}, status=status.HTTP_200_OK)
+                
+                shuffled_word = shuffle_word(word)
+                used_words.append(word)
+
+                # Store the game state in session
+                request.session['original_word'] = word
+                request.session['difficulty'] = difficulty
+                request.session['used_words'] = used_words
+                request.session['level'] = 1
+                request.session['score'] = 0
+
+                return Response({
+                    "difficulty": difficulty,
+                    "level": 1,
+                    "shuffled_word": shuffled_word,
+                    "score": 0,
+                    "message": "New word generated. Start guessing!"
+                }, status=status.HTTP_200_OK)
+            else:
+                # Continue the game
+                original_word = request.session.get('original_word')
+                level = request.session.get('level')
+                score = request.session.get('score')
+                used_words = request.session.get('used_words', [])
+                
+                if guess == original_word:
+                    score += 1
+                    level += 1
+                    next_word, message = choose_word(difficulty, used_words)
+                    if next_word is None:
+                        return Response({"message": message}, status=status.HTTP_200_OK)
+                    shuffled_word = shuffle_word(next_word)
+                    used_words.append(next_word)
+
+                    # Update session data
+                    request.session['original_word'] = next_word
+                    request.session['level'] = level
+                    request.session['score'] = score
+                    request.session['used_words'] = used_words
+
+                    return Response({
+                        "message": "Correct! Moving to the next word.",
+                        "difficulty": difficulty,
+                        "level": level,
+                        "shuffled_word": shuffled_word,
+                        "score": score,
+                    }, status=status.HTTP_200_OK)
+                else:
+                    return Response({
+                        "message": f"Incorrect. The correct word was: {original_word}",
+                        "difficulty": difficulty,
+                        "level": level,
+                        "score": score,
+                    }, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
