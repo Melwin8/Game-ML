@@ -10,6 +10,10 @@ from rest_framework.permissions import AllowAny
 from .gaming import TenseQuiz 
 from .boggle import BoggleGame
 from .wordpuzzle import shuffle_word, choose_word
+from .utils import translate_text
+from deep_translator.exceptions import NotValidPayload, NotValidLength, TranslationNotFound
+
+
 # from .gaming import Question
 
 class UserRegistrationView(APIView):
@@ -142,7 +146,7 @@ class BoggleGameAPIView(APIView):
         return board_str
 
     def display_hint(self, hint_words):
-        hint_str = "\nHint words: " + ", ".join(hint_words)
+        hint_str = "\n Hint words: " + ", ".join(hint_words)
         return hint_str
 
     def post(self, request, format=None):
@@ -305,3 +309,35 @@ class WordShuffleChallengeAPIView(APIView):
                         "score": score,
                     }, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+
+class TranslateAPIView(APIView):
+    serializer_class = TranslateSerializer
+    
+    def post(self, request):
+        serializer = TranslateSerializer(data=request.data)
+        
+        if serializer.is_valid():
+            text = serializer.validated_data['text']
+            target_language = serializer.validated_data.get('target_language', 'en')
+            
+            try:
+                translated_text = translate_text(text, target_language)
+                return Response({
+                    "status": 1,
+                    "message": "Hey welcome to Translate",
+                    'translated_text': translated_text
+                }, status=status.HTTP_200_OK)
+            except (NotValidPayload, NotValidLength, TranslationNotFound) as e:
+                return Response({
+                    "status": 0,
+                    "error": "Translation failed",
+                    "message": str(e)
+                }, status=status.HTTP_400_BAD_REQUEST)
+            except Exception as e:
+                return Response({
+                    "status": 0,
+                    "error": "An unexpected error occurred",
+                    "message": str(e)
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)    

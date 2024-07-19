@@ -76,3 +76,7 @@ class WordShuffleSerializer(serializers.Serializer):
     level = serializers.IntegerField(required=False)
     score = serializers.IntegerField(required=False)
     message = serializers.CharField(max_length=255, required=False)
+    
+class TranslateSerializer(serializers.Serializer):
+    text = serializers.CharField(max_length=1000)
+    target_language = serializers.CharField(default='en')     
